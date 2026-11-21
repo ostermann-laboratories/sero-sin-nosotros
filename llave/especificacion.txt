@@ -1,0 +1,148 @@
+SERO: ESPECIFICACIÓN DE LA DERIVACIÓN DE LLAVES
+Ostermann Laboratories S.à r.l. Licencia MIT.
+Publicada el 6 de noviembre de 2026. Ampliada el 8 de noviembre (bolsillos) y el 21 de noviembre
+(versiones anteriores).
+
+Este documento basta para reconstruir cualquier billetera SERO en cualquier lenguaje, aunque
+ya no existan SERO, este sitio ni su código. Si tu implementación reproduce las direcciones de
+vectores.json, deriva exactamente igual que la billetera.
+
+Las secciones 1 a 3 dan la llave. La 4 da los bolsillos: otras direcciones de esa misma llave,
+que la billetera usa desde noviembre de 2026.
+
+Notación: UTF-8(x) son los bytes UTF-8 del texto x. keccak256 es el de Ethereum (no SHA3-256).
+"|" en un texto es el carácter literal. Toda llave es un escalar secp256k1 de 32 bytes.
+
+────────────────────────────────────────────────────────────────────────────────
+1. DE BYTES A LLAVE (común a todos los niveles)
+────────────────────────────────────────────────────────────────────────────────
+Dado un bloque de bytes S y una etiqueta L:
+  para ronda = 0, 1, 2, … 1023:
+    candidato = keccak256( S || UTF-8(":" + L + ":" + ronda) )        (ronda en decimal)
+    si 0 < candidato < n (orden de secp256k1), la llave es candidato. Fin.
+
+La dirección es la de Ethereum: keccak256 de la clave pública sin comprimir (sin el
+prefijo 0x04), últimos 20 bytes, con mayúsculas EIP-55. Sirve en BNB Smart Chain.
+
+────────────────────────────────────────────────────────────────────────────────
+2. NIVEL MÁXIMA (12 palabras)
+────────────────────────────────────────────────────────────────────────────────
+  frase   = las 12 palabras, unidas por un espacio, en minúsculas (lista BIP-39 en español)
+  semilla = BIP-39 mnemonicToSeed(frase), sin contraseña adicional (64 bytes)
+  llave   = sección 1 con S = semilla y L = "SERO_FLASH_MAXIMUM_BSC_EOA_V1"
+
+No es la ruta m/44'/60'/0'/0/0 de MetaMask: por eso, importar las 12 palabras en otra
+billetera da otra dirección. Lo que se importa es la llave privada resultante.
+
+────────────────────────────────────────────────────────────────────────────────
+3. NIVELES ESTÁNDAR Y AVANZADA (libro, rango, identificador y avatar)
+────────────────────────────────────────────────────────────────────────────────
+3.1 Lo que escribe la persona, normalizado
+  Cédula:     solo los dígitos, como máximo 10.                     "V-12.345.678" → "12345678"
+  Matrícula:  sin tildes (NFD y se quitan las marcas), en mayúsculas, solo A-Z, 0-9 y "-",
+              guiones repetidos se vuelven uno, como máximo 12.       " ucv-99 " → "UCV-99"
+  Rango:      "m - n": se separa por el primer "-", cada lado conserva solo sus dígitos
+              (hasta 7). Debe cumplirse 0 < m ≤ n.                  "120 - 135" → m=120, n=135
+  Libro:      número de 1 a 17 (ver la lista al final).
+  Avatar:     número de 1 a 17 (ver la lista al final).
+
+3.2 El material
+  {
+    "v": "SERO_FLASH_DERIVATION_V1",
+    "network": "BSC",
+    "curve": "secp256k1",
+    "security": "standard" | "advanced",
+    "identifier": { "type": "cedula" | "matricula", "value": <normalizado> },
+    "avatar": { "id": <avatar> },
+    "secrets": [ { "slot": 1, "book": <libro>, "m": <m>, "n": <n> },
+                 { "slot": 2, ... }                                  (solo en Avanzada) ]
+  }
+  JSON canónico: claves ordenadas alfabéticamente en todos los niveles, sin espacios,
+  números enteros sin decimales, textos con escape JSON estándar.
+
+3.3 La sal
+  texto = "SERO_FLASH_CULTURAL_BSC_KDF_V4" | "BSC" | security | "avatar:" + avatar | "id:" + type + ":" + value
+  sal   = keccak256(UTF-8(texto))
+
+3.4 La llave
+  S = Argon2id(contraseña = UTF-8(JSON canónico), sal, memoria = 65536 KiB,
+               iteraciones = 3, paralelismo = 1, longitud = 32)
+  llave = sección 1 con ese S y L = "SERO_FLASH_CULTURAL_BSC_EOA_V4"
+
+  Los textos "SERO_FLASH_CULTURAL_BSC_KDF_V4" y "SERO_FLASH_CULTURAL_BSC_EOA_V4" son constantes
+  fijas: se escriben tal cual, letra por letra.
+
+3.5 El texto del libro no interviene. Solo su número y las posiciones de las palabras.
+
+3.6 Billeteras activadas con versiones anteriores de la app
+  La billetera reconoce, además, dos derivaciones anteriores de Estándar y Avanzada, con el mismo
+  JSON canónico de 3.2:
+    - S = PBKDF2-SHA256(UTF-8(JSON canónico), sal, 600 000 iteraciones, 32 bytes), con la sal de 3.3
+      escrita con "SERO_FLASH_CULTURAL_BSC_KDF_V3"; llave = sección 1 con L = "SERO_FLASH_CULTURAL_BSC_EOA_V3".
+    - S = PBKDF2-SHA256(UTF-8(JSON canónico), sal = UTF-8("SERO_FLASH_CULTURAL_BSC_KDF_V2"),
+      200 000 iteraciones, 32 bytes); llave = sección 1 con L = "SERO_FLASH_CULTURAL_BSC_EOA_V2".
+  Al reactivar, la billetera calcula las tres y abre la primera que tenga movimiento en la red, en
+  este orden: 3.4, la de 600 000 iteraciones y la de 200 000. Si ninguna tiene, abre la de 3.4.
+
+────────────────────────────────────────────────────────────────────────────────
+4. BOLSILLOS (desde noviembre de 2026)
+────────────────────────────────────────────────────────────────────────────────
+La dirección de las secciones 2 y 3 es la que compartes para recibir: la «puerta». La billetera
+usa además bolsillos, otras direcciones de tu misma llave que solo tú controlas. Lo que llega a
+la puerta pasa a un bolsillo de recarga con tu siguiente pago, y cada pago que te hace otro
+usuario de SERO llega a un bolsillo de cobro nuevo. Tu saldo es la suma de la puerta y sus
+bolsillos. Cada bolsillo es una dirección normal de BNB Smart Chain, con su propia llave privada.
+
+En adelante, «llave» son los 32 bytes de la llave de las secciones 2 o 3, G es el generador de
+secp256k1 y comprimido(P) son los 33 bytes de un punto (02 o 03 según la paridad de y, y x).
+
+4.1 Llaves de gasto y de ver, y código de cobro
+  gasto = sección 1 con S = llave y L = "SERO_BOLSILLO_GASTO_V1"
+  ver   = sección 1 con S = llave y L = "SERO_BOLSILLO_VER_V1"
+  código de cobro = ( comprimido(gasto·G), comprimido(ver·G) )
+
+4.2 Bolsillos de recarga (numerados)
+  bolsillo i = sección 1 con S = llave y L = "SERO_BOLSILLO_RECARGA_V1_" + i      (i en decimal)
+  Se usan en orden: 0, 1, 2… Para encontrarlos todos, revisa desde el 0 hasta dar con 20
+  seguidos sin ningún movimiento (sin USDT, sin BNB y sin transacciones enviadas).
+
+4.3 Bolsillos de cobro (uno nuevo por cada pago recibido)
+  Lee los eventos PaymentExecuted del contrato SERO desde el bloque 132306000:
+    contrato  0xc872fcbc4Df48187454798Ebc94176A258832F4D   (BNB Smart Chain)
+    topics[0] 0x101bbd0b71609893cf7095fdbebe9b6e9e097866134ccb8d28e9ce3d309b14e4
+  Para cada evento: r = topics[1] (32 bytes) y destino = los últimos 20 bytes de topics[3].
+    E = el punto de la curva con x = r e y par (comprimido 02 || r). Si no existe, no es tuyo.
+    h = keccak256( UTF-8("SERO_BOLSILLO_SECRETO_V1") || comprimido(ver·E) ) mod n
+    k = (gasto + h) mod n
+    si la dirección de k es destino, ese bolsillo es tuyo y k es su llave privada.
+  No hace falta ningún otro dato: ni SERO ni este sitio intervienen en el cálculo.
+
+4.4 Cómo calcula el bolsillo quien paga (para implementaciones)
+  e = un escalar al azar; E = e·G; si y(E) es impar, e = n − e (así E siempre tiene y par)
+  h = keccak256( UTF-8("SERO_BOLSILLO_SECRETO_V1") || comprimido(e·V) ) mod n
+  destino = dirección(S + h·G)          clientTxId del pago = x(E), 32 bytes
+  (S y V son el código de cobro de quien recibe.)
+
+4.5 Las etiquetas "SERO_BOLSILLO_…" son constantes fijas: se escriben tal cual, letra por letra.
+  vectores.json trae, para cada billetera de prueba, su código de cobro, sus tres primeros
+  bolsillos de recarga y un cobro calculado con una e fija.
+
+────────────────────────────────────────────────────────────────────────────────
+LIBROS                                    AVATARES
+ 1 La Biblia                               1 Tonina del Orinoco     10 Oso frontino
+ 2 La Ilíada                               2 Caimán del Orinoco     11 Tortuga Carey
+ 3 La Odisea                               3 Turpial                12 Pereza
+ 4 La Divina Comedia                       4 Jaguar                 13 Cachicamo
+ 5 Don Quijote de la Mancha                5 Manatí caribeño        14 Oso palmero
+ 6 Tristán e Isolda                        6 Iguana                 15 Rabipelado
+ 7 Cien años de soledad                    7 Guacamaya              16 Colibrí
+ 8 Doña Bárbara                            8 Chigüire               17 Mono Araguato
+ 9 Meditaciones                            9 Rana tropical
+10 Los miserables
+11 El conde de Montecristo
+12 Guerra y paz
+13 La comunidad del anillo
+14 Danza de dragones
+15 Duna
+16 Fundación
+17 El catalejo lacado

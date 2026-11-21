@@ -1,0 +1,226 @@
+SERO Pay 1.0.1: referencia técnica
+Documentación con demostración: https://web.sero.foundation/pagar-con-sero/
+Licencia MIT. Copyright (c) 2026 Ostermann Laboratories.
+
+Este documento basta para integrar SERO Pay o reimplementarlo en otro lenguaje. Está escrito
+para leerse de corrido por una persona o por un asistente de programación.
+
+────────────────────────────────────────────────────────────────────────────────
+0. Qué es
+────────────────────────────────────────────────────────────────────────────────
+SERO Pay agrega «Pagar con SERO» a cualquier web. El cliente paga en USDT (BNB Smart Chain)
+desde SERO, la billetera de autocustodia de sero.foundation. El dinero va directo de su
+billetera a la del comercio a través de un contrato público; nadie lo custodia en medio.
+
+No hay cuentas de comercio, claves de API ni registro. La identidad del comercio es su
+dirección SERO. El comercio recibe el monto completo; la comisión la paga quien envía.
+
+Archivos (sin dependencias):
+  https://web.sero.foundation/sdk/v1/sero-pay.js    navegador: window.SeroPay y <sero-pagar>.
+  https://web.sero.foundation/sdk/v1/sero-pay.mjs   módulo ES universal (Node 18+, Deno, Bun,
+                                                    Workers, navegador), sin interfaz.
+  https://web.sero.foundation/sdk/1.0.1/…              la misma versión, fija e inmutable.
+  SRI de /sdk/1.0.1/sero-pay.js: sha384-l+B5xvHanR/8HUHm21QlUdbptFvUjEN/SfgvMUiC87m8kGJgMJ+8h3qI9Wbspw7a
+  SRI de /sdk/1.0.1/sero-pay.mjs: sha384-Xj6kAoRQsz0hFiIOH4r0VSfEzneGbL6rFESeKpkZJYkCyDrfBSFFdn7PylfmRaKh
+
+El canal v1 recibe correcciones compatibles. Para fijar la versión exacta usa la ruta con el
+número de versión junto con integrity="…" y crossorigin="anonymous".
+
+────────────────────────────────────────────────────────────────────────────────
+1. Integración mínima (navegador)
+────────────────────────────────────────────────────────────────────────────────
+  <script src="https://web.sero.foundation/sdk/v1/sero-pay.js" defer></script>
+
+  <sero-pagar negocio="Mi Tienda" direccion="0xDIRECCION_SERO" monto="16.50" orden="A-1043">
+  </sero-pagar>
+
+  <script>
+    document.addEventListener("sero:pagado", (e) => {
+      const recibo = e.detail; // verificado en la red
+      // recibo.referencia, recibo.pagador, recibo.monto, recibo.orden …
+    });
+  </script>
+
+Carrito: asigna la lista a la propiedad `productos` del elemento (o JSON en el atributo):
+  document.querySelector("sero-pagar").productos = [
+    { nombre: "Café de altura, 250 g", precio: "9.50", cantidad: 1, id: "cafe-250" },
+    { nombre: "Taza esmaltada", precio: "7.00", cantidad: 1 },
+  ];
+
+Sin el elemento:
+  const recibo = await SeroPay.pagar({ negocio, direccion, orden, productos });  // o monto
+  // recibo verificado, o null si el cliente cerró la ventana sin pagar.
+
+La ventana muestra: la orden (negocio, número, total, productos), un QR para escanear con SERO
+(o descargar como imagen y escanear después desde la galería) y «Enviar el cobro a mi
+billetera»: el cliente escribe su dirección SERO y recibe una notificación insistente que
+abre la app con la orden lista para aprobar. Todo en Shadow DOM; no requiere 'unsafe-inline'.
+
+────────────────────────────────────────────────────────────────────────────────
+2. <sero-pagar>: atributos
+────────────────────────────────────────────────────────────────────────────────
+  direccion       Obligatorio. Dirección SERO del comercio: /^0x[0-9a-fA-F]{40}$/.
+  negocio         Nombre visible (ventana y notificación). 40 caracteres. Los nombres que
+                  contienen «sero» se omiten en la notificación.
+  monto           Monto único ("12.50", "12,5" o 12.5; máximo dos decimales).
+  concepto        Descripción del monto único. Por omisión «Pago a {negocio}».
+  productos       JSON: [{ "nombre", "precio", "cantidad"?, "id"? }]. Tiene prioridad sobre monto.
+  orden           Referencia única de la venta (80 caracteres). Por omisión, una al azar.
+                  IMPORTANTE: la misma referencia con los mismos datos produce la misma
+                  orden (misma huella). Así, un reintento o una recarga de la página no puede
+                  cobrar dos veces, pero dos ventas distintas nunca deben compartir referencia.
+  numero          Entero visible («Orden de compra N.º …»). Por omisión, los dígitos de orden.
+  plan, plan-nombre, cliente, periodo
+                  Botón de suscripción mensual (ver sección 6). periodo = "AAAA-MM".
+  etiqueta        Texto del botón. Por omisión «Pagar con SERO» o «Suscribirme con SERO».
+  tema="claro"    Botón blanco con borde, para fondos oscuros.
+  ancho="completo" Ocupa todo el ancho disponible.
+  demostracion    Simula el flujo completo sin red y sin cobrar.
+  pasarela        Base de la pasarela (pruebas). Por omisión https://gate-latam.sero.foundation
+
+Si los atributos no forman una orden válida, el botón queda deshabilitado y el motivo se
+escribe en la consola ("[SERO] <sero-pagar>: …") y en su atributo title.
+
+────────────────────────────────────────────────────────────────────────────────
+3. Eventos (burbujean y cruzan Shadow DOM; con SeroPay.pagar se emiten en window)
+────────────────────────────────────────────────────────────────────────────────
+  sero:pagado          detail = recibo verificado:
+                       { referencia, pagador, destino, monto, bloque, orden, numero, huella,
+                         suscripcion? }   (demostracion: true en modo demostración)
+  sero:cobro-enviado   detail = { orden, numero, negocio, total, productos, direccion, destino }
+  sero:cerrado         detail = { orden, motivo }. Un cobro pendiente se cancela.
+  sero:listo           en window, cuando window.SeroPay está disponible.
+
+────────────────────────────────────────────────────────────────────────────────
+4. API (window.SeroPay y exportaciones de sero-pay.mjs)
+────────────────────────────────────────────────────────────────────────────────
+Solo navegador:
+  pagar(opciones) → Promise<recibo | null>
+      opciones de crearOrden + { alPagar(recibo), alCerrar(motivo), demostracion, pasarela }
+  suscribir(opciones) → Promise<recibo | null>      opciones de ordenDeSuscripcion.
+
+Universal:
+  crearOrden({ direccion, negocio?, productos? | monto?, concepto?, orden?, numero? }) → orden
+      orden = { token, huella, id, numero, negocio, direccion (minúsculas), total ("16.50"),
+                productos: [{ id, nombre, precio, cantidad, subtotal }], cantidadDeProductos }
+      Lanza ErrorSero { codigo, message }: direccion_invalida, monto_invalido, monto_minimo,
+      sin_productos, producto_invalido, demasiados_productos, orden_demasiado_grande.
+  ordenDeSuscripcion({ direccion, negocio?, plan: { id, nombre, precio }, cliente, periodo? })
+      → orden + { suscripcion: { plan, cliente, periodo, etiqueta } }. Determinista.
+      Errores adicionales: plan_invalido, cliente_invalido, periodo_invalido.
+  enviarCobro(orden, billeteraDelCliente, { reintentos = 2 }?)
+      → { ok: true, id } | { ok: false, codigo, mensaje }
+      codigo: propia | bloqueado | pagada | demasiados_cobros | sin_notificaciones |
+              datos_invalidos | rate_limited | sin_conexion | direccion_invalida
+      mensaje: texto en español listo para mostrar.
+  estadoDelCobro(id) → "activo" | "pagado" | "cancelado" | "rechazado" | "vencido" | null
+  cancelarCobro(id) → boolean
+  consultarPago(orden, { bloques = 0 }?) → recibo | null
+      Pregunta a la pasarela por la huella y verifica cada candidato en nodos públicos.
+      Con bloques > 0 (máximo 5000) busca además en los últimos N bloques de la red.
+  esperarPago(orden, { intervalo = 4000, senal: AbortSignal }?) → Promise<recibo>
+  verificarReferencia(orden, referencia) → recibo | null
+  enlaceCorto(orden) → "https://gate-latam.sero.foundation/o/{id}" (o el largo si falla)
+  enlaceLargo(orden) → "https://latam.sero.foundation/#sero-order={token}"
+  huellaDeToken(token), keccak256(texto | Uint8Array) → hex sin 0x
+  qrSvg(texto, { nivel = "M", margen = 4, oscuro, claro }?) → string SVG
+  qrMatriz(texto, nivel = "M") → boolean[][]
+  periodoActual(fecha?) → "AAAA-MM"      periodoLegible("2026-10") → "octubre de 2026"
+  direccionCorta("0x1234…") → "0x1234...abcd"
+  VERSION, ErrorSero
+
+Opciones comunes de red: { pasarela, rpc: [urls de nodos BSC] }.
+Nodos públicos por omisión (CORS abierto): bsc-rpc.publicnode.com, bsc-dataseed.bnbchain.org,
+bsc-dataseed1.binance.org, 1rpc.io/bnb.
+
+────────────────────────────────────────────────────────────────────────────────
+5. Verificación en el servidor (recomendada antes de entregar algo de valor)
+────────────────────────────────────────────────────────────────────────────────
+  import { crearOrden, consultarPago } from "./sero-pay.mjs";
+  const orden = crearOrden({ direccion, orden: pedido.id, productos: pedido.productos });
+  const recibo = await consultarPago(orden, { bloques: 900 });
+  if (recibo) marcarPagado(pedido.id, recibo.referencia);
+
+Reconstruir la orden con la misma referencia y los mismos datos devuelve la misma huella que
+vio el cliente. Node: descarga sero-pay.mjs junto a tu código (Node no importa URLs https).
+Deno: import directamente desde https://web.sero.foundation/sdk/v1/sero-pay.mjs.
+
+────────────────────────────────────────────────────────────────────────────────
+6. Suscripciones mensuales
+────────────────────────────────────────────────────────────────────────────────
+Una suscripción es una orden por periodo. Nadie retira dinero sin la aprobación del
+suscriptor; cada mes el comercio envía el cobro y el suscriptor lo aprueba.
+
+  Alta (navegador): <sero-pagar plan="club" plan-nombre="Club del Café" monto="12.00"
+                    cliente="cliente-881" negocio="…" direccion="…"></sero-pagar>
+                    El recibo trae `pagador`: guárdalo como billetera del suscriptor.
+  Cada mes (servidor, tarea programada):
+    const orden = ordenDeSuscripcion({ direccion, negocio, plan: { id, nombre, precio },
+                                       cliente: s.id, periodo: periodoActual() });
+    if (!(await consultarPago(orden))) await enviarCobro(orden, s.billetera);
+
+La orden de un periodo es siempre la misma (id "sus-{plan}-{sello}-{periodo}", número
+AAAAMM): repetir la tarea no cobra dos veces. El sello no expone el identificador del cliente.
+Si el suscriptor rechaza y bloquea, los cobros de ese comercio dejan de llegarle.
+
+────────────────────────────────────────────────────────────────────────────────
+7. Límites y tiempos
+────────────────────────────────────────────────────────────────────────────────
+  Total mínimo 1.00 USDT. Montos con hasta 2 decimales. Hasta 100 líneas; nombres de 40
+  caracteres; token de hasta 15 000 caracteres.
+  Cobros: máximo 6 por hora a una misma billetera; sin límite por comercio. Un cobro notifica
+  al enviarse y a los minutos 1, 3 y 10; vence a los 30 min; se detiene al pagarse,
+  cancelarse o rechazarse. La billetera del cliente necesita las notificaciones activas.
+  Pasarela: 120 cobros/min y 240 consultas/min por IP. Enlaces cortos: 30 días.
+
+────────────────────────────────────────────────────────────────────────────────
+8. Protocolo (para reimplementar o auditar)
+────────────────────────────────────────────────────────────────────────────────
+8.1 Orden
+  JSON UTF-8 con estos campos en este orden exacto (sin espacios, como JSON.stringify):
+    {"v":1,"id":ID,"number":NUM,"status":"enProceso","total":"T.TT","currency":"USDT",
+     "merchantAddress":"0x…minúsculas","products":[{"id":…,"name":…,"price":"P.PP",
+     "quantity":Q,"subtotal":"S.SS"}]}
+  total = suma exacta de subtotal; subtotal = price × quantity; montos con 2 decimales.
+  canonico = "SERO-ORDER-V1." + base64url(json)        (base64url sin relleno "=")
+  suma     = keccak256(utf8(canonico)) en hex → primeros 10 caracteres → MAYÚSCULAS
+  token    = canonico + "." + suma
+  huella   = keccak256(utf8("SERO-ORDEN-HUELLA-V1|" + token)) en hex → primeros 48 caracteres
+  keccak256 es el de Ethereum (relleno 0x01), no SHA3-256 (0x06).
+
+8.2 Pago en la red
+  Cadena: BNB Smart Chain (chainId 56). USDT: 0x55d398326f99059fF775485246999027B3197955
+  (18 decimales). Contrato SERO: 0xc872fcbc4Df48187454798Ebc94176A258832F4D.
+  La app de quien paga usa clientTxId = 0x + huella (24 bytes) + 8 bytes al azar.
+  Evento: PaymentExecuted(bytes32 indexed clientTxId, address indexed user,
+          address indexed recipient, uint256 amount, uint256 fee, uint256 nonce,
+          address relayer, address treasury)
+  topic0 = 0x101bbd0b71609893cf7095fdbebe9b6e9e097866134ccb8d28e9ce3d309b14e4
+  Un pago corresponde a la orden si:
+    receipt.status == 0x1 y log.address == contrato SERO y topics[0] == topic0 y
+    topics[1][2:50] == huella y topics[3] == dirección del comercio (32 bytes) y
+    uint256(data[0:32]) == total × 10^18   (amount es lo que recibe el comercio; fee aparte).
+
+8.3 Pasarela  https://gate-latam.sero.foundation   (JSON; CORS "*"; sin credenciales)
+  POST /api/orders          { order: token } → { id, url }        GET /o/{id} abre SERO.
+  POST /api/pagos/estado    { huellas: [≤40] } → { ok, pagos: { [huella]: [{ tx, pagador,
+                            destino, monto (unidades mínimas), bloque, creado }] } }
+  POST /api/cobros          { token, huella, destino, negocio } → { ok, id, dispositivos }
+  POST /api/cobros/estado   { id } → { ok, estado, envios }
+  POST /api/cobros/cancelar { id } → { ok }
+  La pasarela solo anota lo que la cadena ya muestra en público y, mientras dura un cobro, a
+  qué billetera se envió. La validez de un pago se decide siempre contra la red (8.2).
+
+8.4 Política de seguridad de contenido del sitio que integra
+  script-src https://web.sero.foundation
+  connect-src https://gate-latam.sero.foundation https://bsc-rpc.publicnode.com
+              https://bsc-dataseed.bnbchain.org https://bsc-dataseed1.binance.org https://1rpc.io
+
+────────────────────────────────────────────────────────────────────────────────
+9. Buenas prácticas
+────────────────────────────────────────────────────────────────────────────────
+  - Una referencia `orden` única por venta; reutilízala para reintentar esa misma venta.
+  - Confirma en tu servidor con consultarPago antes de entregar bienes de valor.
+  - Guarda recibo.referencia (número de referencia): es verificable por cualquiera en la red.
+  - Para devolver un pago, envía el monto desde tu SERO a recibo.pagador.
+  - Usa `demostracion` para probar tu integración sin dinero.

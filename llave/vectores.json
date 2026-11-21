@@ -1,0 +1,181 @@
+{
+  "nota": "Materiales ficticios. Si tu implementación da estas direcciones, deriva igual que SERO.",
+  "vectores": [
+    {
+      "caso": "estandar_cedula",
+      "nivel": "standard",
+      "identificador": {
+        "tipo": "cedula",
+        "escrito": "V-12.345.678"
+      },
+      "avatar": 3,
+      "secretos": [
+        {
+          "libro": 4,
+          "rango": "120 - 135"
+        }
+      ],
+      "direccion": "0xe0E4Ce133004DE78C03334508404D63e6d87e942",
+      "anteriores": {
+        "V3": "0x1d55f1C2cAA4edCdAfB1186f8623eF4F3c06C274",
+        "V2": "0xF572aD758b679D524F9f9deC1B64bD079809C10c"
+      }
+    },
+    {
+      "caso": "avanzada_matricula",
+      "nivel": "advanced",
+      "identificador": {
+        "tipo": "matricula",
+        "escrito": "abc-2024-77"
+      },
+      "avatar": 11,
+      "secretos": [
+        {
+          "libro": 9,
+          "rango": "7-9"
+        },
+        {
+          "libro": 15,
+          "rango": "300-301"
+        }
+      ],
+      "direccion": "0xEE46c8372b508cf3eA9D314D6E0C46Bcf7ffFd96",
+      "anteriores": {
+        "V3": "0x1C80C27C51D9cFE963A1F8a331C6Ad81A8F42E9F",
+        "V2": "0x1C92350E42A53982608cFDe3DEF289140876EdC7"
+      }
+    },
+    {
+      "caso": "estandar_matricula",
+      "nivel": "standard",
+      "identificador": {
+        "tipo": "matricula",
+        "escrito": " ucv-99 "
+      },
+      "avatar": 1,
+      "secretos": [
+        {
+          "libro": 1,
+          "rango": "1-1"
+        }
+      ],
+      "direccion": "0x4381AffEcF2d8B7cd4c8a2488C2356A9715cc8bA",
+      "anteriores": {
+        "V3": "0x4C4F0bd586C28F4a05da398E04A43f9d76E86636",
+        "V2": "0xd56dD29A21bE62B068B16e51112a5d1f8fda8e73"
+      }
+    },
+    {
+      "caso": "maxima_12_palabras",
+      "nivel": "maximum",
+      "palabras": "ábaco ábaco ábaco ábaco ábaco ábaco ábaco ábaco ábaco ábaco ábaco abierto",
+      "direccion": "0x0D92Bf2DFe9D4B8f1116d093EA7bEb82Dda84b8D"
+    }
+  ],
+  "bolsillos": [
+    {
+      "caso": "estandar_cedula",
+      "codigoDeCobro": {
+        "S": "02952a1b464d5a578576f869b73f6642341d13aed9130f2a798a6e66466338f8d5",
+        "V": "03079957a3c47b583d3d1533d5d8613f9edb5578e29d0318bb21024e625182ad05"
+      },
+      "recargas": [
+        {
+          "numero": 0,
+          "direccion": "0x3267C249cf2Ef89538418e7Ca1D2f6207Ba551f3"
+        },
+        {
+          "numero": 1,
+          "direccion": "0x3824DC0a47dd2559c451283A2404e3d48b1fA250"
+        },
+        {
+          "numero": 2,
+          "direccion": "0x9afD78Fb8A420B737057Aa4810283F905fef7b1c"
+        }
+      ],
+      "cobro": {
+        "efimera": "0x0b33813ac2c19791330aabc5764883d774985e408864aa3e22bbe63172bb5607",
+        "clientTxId": "0xf750f9531aa34ae411088c171d0c50d17e1f423d8e2552bcd9a1f8eeaff618ec",
+        "direccion": "0xbB10FF101d54Ee62007D0c3e1C2BA4f29e89532A"
+      }
+    },
+    {
+      "caso": "avanzada_matricula",
+      "codigoDeCobro": {
+        "S": "0232b831503b5338107afde33039add171da6136e537558f987c731161b38d2639",
+        "V": "0346c473aa439101fbfbb08fb15086ddb11ff01c1e89f6847cf82678ccf1ff1e81"
+      },
+      "recargas": [
+        {
+          "numero": 0,
+          "direccion": "0x398bD024ED3b960FB988E69Fd1fe3c20D39498AC"
+        },
+        {
+          "numero": 1,
+          "direccion": "0x1fC215C5A138685960AaaAa3e5a012E70Ccf63C5"
+        },
+        {
+          "numero": 2,
+          "direccion": "0x1a3Cf996AFA0d8EB3262150BD3Aa5812dD664604"
+        }
+      ],
+      "cobro": {
+        "efimera": "0xf596a1b646a9b2cf4846f42864f39722b4462633aa9393ad07455222c6751d00",
+        "clientTxId": "0xa7f8e6ce813513c307fd9f951961527475c35bfbfff65a2f2d3a8465833f35db",
+        "direccion": "0xA83F139dDc95F43A9c29E4B1e553C576E9c9315C"
+      }
+    },
+    {
+      "caso": "estandar_matricula",
+      "codigoDeCobro": {
+        "S": "03f202467021458671911aa4a4a6741526b91717d0cbd3f0ef112310a6588316fa",
+        "V": "035d265efd4add2b5b6539b55a31c94b595677341cca23d02665d28e4cbc035593"
+      },
+      "recargas": [
+        {
+          "numero": 0,
+          "direccion": "0x2F9534c0dF5D41DE4E1A1119e8dd4cB1b87305ed"
+        },
+        {
+          "numero": 1,
+          "direccion": "0x4C901f4d814f748cc230401FDB31b8cd8a70dE2c"
+        },
+        {
+          "numero": 2,
+          "direccion": "0x46B85C5315Ae906515B9b35044cEC5C07613E2df"
+        }
+      ],
+      "cobro": {
+        "efimera": "0xb70e00ea47c91e5dd58e3777b9b1b3576bbf5a13c5e1b15e43b4ce9d3d725012",
+        "clientTxId": "0x73a18ba17d4a9b7318c4572e45d9491211147c12daff21f9f0e4df31fa3ec0e0",
+        "direccion": "0x0C1AD69eeEd0b1C661a16147ce5a32d3B828Ce0a"
+      }
+    },
+    {
+      "caso": "maxima_12_palabras",
+      "codigoDeCobro": {
+        "S": "037c68e2f0224039a69254728134ffa4cc51ed8d27c2c538db07233d15ce12a9ec",
+        "V": "02fcf67b6bdcce4916be4bd4c9d0b2aa5bc3c90b84db1ccf7fb5c3d36b193655fb"
+      },
+      "recargas": [
+        {
+          "numero": 0,
+          "direccion": "0x2CB21c8f745F105378e663682d2ccd3Bf809A7de"
+        },
+        {
+          "numero": 1,
+          "direccion": "0xAC1A6e38af7AE73A30e54e9Ee1cc1ebb7C92e69C"
+        },
+        {
+          "numero": 2,
+          "direccion": "0xA0926a44F0b3a3663230348cFf5dba8FcC6c6785"
+        }
+      ],
+      "cobro": {
+        "efimera": "0xb42ac287af395b7c1a496e38a965685399e792b5419af1da5581134bda6e7af3",
+        "clientTxId": "0xa67f8aef0a39f02359cacfa7baffa24f7db4a475db921844a86ee2bd1030b9ec",
+        "direccion": "0x10FC6618828bf13229CC4dea81E0D2cF23fC8A35"
+      }
+    }
+  ]
+}
